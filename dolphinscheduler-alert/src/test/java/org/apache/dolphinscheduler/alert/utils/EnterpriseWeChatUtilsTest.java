@@ -17,10 +17,12 @@
 package org.apache.dolphinscheduler.alert.utils;
 
 import com.alibaba.fastjson.JSON;
+import org.apache.dolphinscheduler.alert.manager.EnterpriseWeChatManager;
 import org.apache.dolphinscheduler.common.enums.AlertType;
 import org.apache.dolphinscheduler.common.enums.ShowType;
 import org.apache.dolphinscheduler.dao.entity.Alert;
 import org.apache.dolphinscheduler.plugin.model.AlertData;
+import org.apache.dolphinscheduler.plugin.model.AlertInfo;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -29,6 +31,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
@@ -48,6 +51,7 @@ import java.util.*;
  */
 @PrepareForTest(PropertyUtils.class)
 @RunWith(PowerMockRunner.class)
+@PowerMockIgnore("javax.*")
 public class EnterpriseWeChatUtilsTest {
 
     private static final String toParty = "wwc99134b6fc1edb6";
@@ -59,12 +63,21 @@ public class EnterpriseWeChatUtilsTest {
     private static final String enterpriseWechatTeamSendMsg = "{\\\"toparty\\\":\\\"$toParty\\\",\\\"agentid\\\":\\\"$agentId\\\",\\\"msgtype\\\":\\\"text\\\",\\\"text\\\":{\\\"content\\\":\\\"$msg\\\"},\\\"safe\\\":\\\"0\\\"}";
     private static final String enterpriseWechatUserSendMsg = "{\\\"touser\\\":\\\"$toUser\\\",\\\"agentid\\\":\\\"$agentId\\\",\\\"msgtype\\\":\\\"markdown\\\",\\\"markdown\\\":{\\\"content\\\":\\\"$msg\\\"}}";
 
+    private static final String enterpriseWechatGroupRobotUrl = "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=7481f7ec-b70a-425f-bb9e-cfda4e57b49c";
+    private static final String enterpriseWechatGroupSendMsg = "{\"msgtype\":\"markdown\",\"markdown\":{\"content\":\"$msg\"}}";
+
+    private static final EnterpriseWeChatManager weChatManager = new EnterpriseWeChatManager();
+
     @Before
     public void init(){
         PowerMockito.mockStatic(PropertyUtils.class);
         Mockito.when(PropertyUtils.getBoolean(Constants.ENTERPRISE_WECHAT_ENABLE)).thenReturn(true);
         Mockito.when(PropertyUtils.getString(Constants.ENTERPRISE_WECHAT_USER_SEND_MSG)).thenReturn(enterpriseWechatUserSendMsg);
         Mockito.when(PropertyUtils.getString(Constants.ENTERPRISE_WECHAT_TEAM_SEND_MSG)).thenReturn(enterpriseWechatTeamSendMsg);
+
+        Mockito.when(PropertyUtils.getString(Constants.ENTERPRISE_WE_CHAT_GROUP_ROBOT_URL)).thenReturn(enterpriseWechatGroupRobotUrl);
+        Mockito.when(PropertyUtils.getString(Constants.ENTERPRISE_WE_CHAT_GROUP_SEND_MSG)).thenReturn(enterpriseWechatGroupSendMsg);
+
     }
 
     @Test
@@ -138,6 +151,73 @@ public class EnterpriseWeChatUtilsTest {
                 .setContent(alertForText.getContent());
         String result = EnterpriseWeChatUtils.markdownByAlert(alertData);
         Assert.assertNotNull(result);
+    }
+
+    @Test
+    public void testSendGroupRobotMsgText() throws IOException {
+        Alert alertForText = createAlertForWeChatGroupText();
+        AlertData alertData = new AlertData();
+        alertData.setTitle(alertForText.getTitle())
+                .setShowType(alertForText.getShowType().getDescp())
+                .setContent(alertForText.getContent());
+
+        AlertInfo alertInfo = new AlertInfo();
+        alertInfo.setAlertData(alertData);
+
+        Map<String, Object> result = weChatManager.sendGroupMsgByRobot(alertInfo);
+        Assert.assertNotNull(result);
+    }
+
+    @Test
+    public void testSendGroupRobotMsgTable() throws IOException {
+        Alert alertForText = createAlertForWeChatGroupTableText();
+        AlertData alertData = new AlertData();
+        alertData.setTitle(alertForText.getTitle())
+                .setShowType(alertForText.getShowType().getDescp())
+                .setContent(alertForText.getContent());
+
+        AlertInfo alertInfo = new AlertInfo();
+        alertInfo.setAlertData(alertData);
+
+        Map<String, Object> result = weChatManager.sendGroupMsgByRobot(alertInfo);
+        Assert.assertNotNull(result);
+    }
+
+    private Alert createAlertForWeChatGroupTableText(){
+        String content = "[{'type':'MASTER'," +
+                "'host':'/dolphinscheduler/nodes/master/10.0.0.24:5678'," +
+                "'event':'server down','warning level':'serious'}]";
+
+        Alert alert = new Alert();
+        alert.setTitle("This is a Test|Fault tolerance warning");
+        alert.setShowType(ShowType.TABLE);
+        alert.setContent(content);
+        alert.setAlertType(AlertType.EMAIL);
+        alert.setAlertGroupId(2);
+
+        return alert;
+    }
+
+
+    private Alert createAlertForWeChatGroupText(){
+        String content ="[\"id:233\"," +
+                "\"name:flume_start_log-0-1616430601206\"," +
+                "\"job type: scheduler\"," +
+                "\"state: SUCCESS\"," +
+                "\"recovery:NO\"," +
+                "\"run time: 1\"," +
+                "\"start time: 2021-03-23 00:30:01\"," +
+                "\"end time: 2021-03-23 00:32:25\"," +
+                "\"host: 10.0.0.24:5678\"]";
+
+        Alert alert = new Alert();
+        alert.setTitle("This is a Test|scheduler success");
+        alert.setShowType(ShowType.TEXT);
+        alert.setContent(content);
+        alert.setAlertType(AlertType.EMAIL);
+        alert.setAlertGroupId(2);
+
+        return alert;
     }
 
     private Alert createAlertForText(){

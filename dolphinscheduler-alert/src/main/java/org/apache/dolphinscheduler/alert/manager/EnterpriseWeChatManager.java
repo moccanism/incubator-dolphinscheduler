@@ -56,4 +56,22 @@ public class EnterpriseWeChatManager {
         return retMap;
     }
 
+    /**
+     * Send Enterprise WeChat Group Message by Robot
+     * @param alertInfo the alert info
+     * @return the send result
+     */
+    public Map<String,Object> sendGroupMsgByRobot(AlertInfo alertInfo){
+        Map<String,Object> retMap = new HashMap<>();
+        retMap.put(Constants.STATUS, false);
+        logger.info("send message {}", alertInfo.getAlertData().getTitle());
+        String msg = EnterpriseWeChatUtils.makeGroupSendMsg(EnterpriseWeChatUtils.markdownByAlert(alertInfo.getAlertData()));
+        try {
+            EnterpriseWeChatUtils.sendEnterpriseWeChatGroupMsgByRobot(Constants.UTF_8, msg);
+        } catch (IOException e) {
+            logger.error(e.getMessage(),e);
+        }
+        retMap.put(Constants.STATUS, true);
+        return retMap;
+    }
 }

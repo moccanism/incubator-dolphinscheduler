@@ -62,6 +62,11 @@ public class EnterpriseWeChatUtils {
 
     public static final String ENTERPRISE_WE_CHAT_USERS = PropertyUtils.getString(Constants.ENTERPRISE_WECHAT_USERS);
 
+    public static final String ENTERPRISE_WE_CHAT_ROBOT_URL = PropertyUtils.getString(Constants.ENTERPRISE_WE_CHAT_GROUP_ROBOT_URL);
+
+    public static final String ENTERPRISE_WE_CHAT_GROUP_SEND_MSG = PropertyUtils.getString(Constants.ENTERPRISE_WE_CHAT_GROUP_SEND_MSG);
+
+
     /**
      * get Enterprise WeChat is enable
      * @return isEnable
@@ -160,6 +165,45 @@ public class EnterpriseWeChatUtils {
         return ENTERPRISE_WE_CHAT_USER_SEND_MSG.replaceAll("\\$toUser", listUser)
                 .replaceAll("\\$agentId", agentId)
                 .replaceAll("\\$msg", msg);
+    }
+
+    /**
+     * make group message
+     * @param msg the msg
+     * @return Enterprise WeChat send message
+     */
+    public static String makeGroupSendMsg(String msg) {
+        return ENTERPRISE_WE_CHAT_GROUP_SEND_MSG.replaceAll("\\$msg", msg);
+    }
+
+    /**
+     * send Enterprise WeChat Group Message
+     * @param charset the charset
+     * @param data the data
+     * @return Enterprise WeChat resp, demo: {"errcode":0,"errmsg":"ok","invaliduser":""}
+     * @throws IOException the IOException
+     */
+    public static String sendEnterpriseWeChatGroupMsgByRobot(String charset, String data) throws IOException {
+
+        CloseableHttpClient httpClient = HttpClients.createDefault();
+        try {
+            HttpPost httpPost = new HttpPost(ENTERPRISE_WE_CHAT_ROBOT_URL);
+            httpPost.addHeader("Content-Type", "application/json");
+            httpPost.setEntity(new StringEntity(data, charset));
+            CloseableHttpResponse response = httpClient.execute(httpPost);
+            String resp;
+            try {
+                HttpEntity entity = response.getEntity();
+                resp = EntityUtils.toString(entity, charset);
+                EntityUtils.consume(entity);
+            } finally {
+                response.close();
+            }
+            logger.info("Enterprise WeChat Group send param:{}, resp:{}", data, resp);
+            return resp;
+        } finally {
+            httpClient.close();
+        }
     }
 
     /**

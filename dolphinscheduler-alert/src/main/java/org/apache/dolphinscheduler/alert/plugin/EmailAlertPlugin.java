@@ -115,8 +115,9 @@ public class EmailAlertPlugin implements AlertPlugin {
             if (EnterpriseWeChatUtils.isEnable()) {
                 logger.info("Enterprise WeChat is enable!");
                 try {
-                    String token = EnterpriseWeChatUtils.getToken();
-                    weChatManager.send(info, token);
+//                    String token = EnterpriseWeChatUtils.getToken();
+//                    weChatManager.send(info, token);
+                    weChatManager.sendGroupMsgByRobot(info);
                 } catch (Exception e) {
                     logger.error(e.getMessage(), e);
                 }
